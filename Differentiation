@@ -1,0 +1,344 @@
+import re
+
+class Node:
+    def __init__(self):
+        self._left = None
+        self._right = None
+
+    def addLeft(self, newNode):
+        self._left = newNode
+
+    def addRight(self, newNode):
+        self._right = newNode
+
+    def evaluate(self, variable_value=None):
+        pass  # Base class should not implement evaluate
+
+    def differentiate(self):
+        pass
+
+    def simplify(self):
+        pass  # Base class should not implement simplify
+
+    def __str__(self):
+        pass  # Define a string representation for each node
+
+
+class VariableNode(Node):
+    def __init__(self, value):
+        self._value = value
+
+    def differentiate(self):
+        return NumberNode(1)
+
+    def __str__(self):
+        return self._value
+
+    def evaluate(self, variable_value):
+        return variable_value  # Return the value of x, passed as variable_value
+
+    def simplify(self):
+        return self  # No simplification needed for the variable node
+
+
+class NumberNode(Node):
+    def __init__(self, value):
+        self.__value = value
+
+    def get_value(self):
+        return self.__value
+
+    def differentiate(self):
+        return NumberNode(0)
+
+    def __str__(self):
+        return str(self.__value)
+
+    def evaluate(self, variable_value=None):
+        return self.__value  # Return the constant value
+
+    def simplify(self):
+        return self  # No simplification needed for a constant
+
+
+
+class OperatorNode(Node):
+    def __init__(self, operatorStr):
+        self.__operatorStr = operatorStr
+
+    def __str__(self):
+        left_str = str(self._left)
+        right_str = str(self._right)
+        return f"({left_str} {self.__operatorStr} {right_str})"
+
+
+    def evaluate(self, variable_value=None):
+        if self._left is None or self._right is None:
+            raise ValueError("Both left and right nodes must be initialized before evaluating.")
+
+        left_value = self._left.evaluate(variable_value)
+        right_value = self._right.evaluate(variable_value)
+
+        if left_value is None or right_value is None:
+            raise ValueError("Evaluation returned None, indicating that one of the child nodes is not properly evaluated.")
+
+        if self.__operatorStr == "+":
+            return left_value + right_value
+        elif self.__operatorStr == "-":
+            return left_value - right_value
+        elif self.__operatorStr == "*":
+            return left_value * right_value
+        elif self.__operatorStr == "/":
+            return left_value / right_value
+        elif self.__operatorStr == "^":
+            return left_value ** right_value
+
+    def simplify(self):
+        if self._left is None or self._right is None:
+            return self
+
+        # Simplify the left and right children first
+        simplified_left = self._left.simplify()
+        simplified_right = self._right.simplify()
+
+        # Case 1: Simplify based on common mathematical identities
+        if self.__operatorStr == "+":
+            # x + 0 => x
+            if isinstance(simplified_left, NumberNode) and simplified_left.get_value() == 0:
+                return simplified_right
+            elif isinstance(simplified_right, NumberNode) and simplified_right.get_value() == 0:
+                return simplified_left
+            # Simplify constants like 1 + 1 => 2
+            elif isinstance(simplified_left, NumberNode) and isinstance(simplified_right, NumberNode):
+                return NumberNode(simplified_left.get_value() + simplified_right.get_value())
+
+        elif self.__operatorStr == "*":
+            # x * 1 => x
+            if isinstance(simplified_left, NumberNode) and simplified_left.get_value() == 1:
+                return simplified_right
+            elif isinstance(simplified_right, NumberNode) and simplified_right.get_value() == 1:
+                return simplified_left
+            # x * 0 => 0
+            elif isinstance(simplified_left, NumberNode) and simplified_left.get_value() == 0:
+                return NumberNode(0)
+            elif isinstance(simplified_right, NumberNode) and simplified_right.get_value() == 0:
+                return NumberNode(0)
+            # Simplify constants like 2 * 3 => 6
+            elif isinstance(simplified_left, NumberNode) and isinstance(simplified_right, NumberNode):
+                return NumberNode(simplified_left.get_value() * simplified_right.get_value())
+
+        elif self.__operatorStr == "-":
+            # x - 0 => x
+            if isinstance(simplified_right, NumberNode) and simplified_right.get_value() == 0:
+                return simplified_left
+            # Simplify constants like 2 - 1 => 1
+            elif isinstance(simplified_left, NumberNode) and isinstance(simplified_right, NumberNode):
+                return NumberNode(simplified_left.get_value() - simplified_right.get_value())
+
+        elif self.__operatorStr == "/":
+            # x / 1 => x
+            if isinstance(simplified_right, NumberNode) and simplified_right.get_value() == 1:
+                return simplified_left
+            # Simplify constants like 2 / 2 => 1
+            elif isinstance(simplified_left, NumberNode) and isinstance(simplified_right, NumberNode):
+                return NumberNode(simplified_left.get_value() / simplified_right.get_value())
+
+        elif self.__operatorStr == "^":
+            # x ^ 1 => x
+            if isinstance(simplified_right, NumberNode) and simplified_right.get_value() == 1:
+                return simplified_left
+            # x ^ 0 => 1
+            elif isinstance(simplified_right, NumberNode) and simplified_right.get_value() == 0:
+                return NumberNode(1)
+            # Simplify constants like 2 ^ 3 => 8
+            elif isinstance(simplified_left, NumberNode) and isinstance(simplified_right, NumberNode):
+                return NumberNode(simplified_left.get_value() ** simplified_right.get_value())
+
+        # If no simplification rule applied, return the simplified operator with its children
+        simplified_node = OperatorNode(self.__operatorStr)
+        simplified_node.addLeft(simplified_left)
+        simplified_node.addRight(simplified_right)
+
+        return simplified_node
+
+    def differentiate(self):
+        # Ensure both left and right children are initialized
+        if self._left is None or self._right is None:
+            raise ValueError("Both left and right nodes must be initialized before differentiating.")
+
+        if self.__operatorStr == "+":
+            sum_node = OperatorNode('+')
+            u = self._left
+            v = self._right
+            du = u.differentiate()
+            dv = v.differentiate()
+            sum_node.addLeft(du)
+            sum_node.addRight(dv)
+            return sum_node
+
+        elif self.__operatorStr == "-":
+            sub_node = OperatorNode('-')
+            u = self._left
+            v = self._right
+            du = u.differentiate()
+            dv = v.differentiate()
+            sub_node.addLeft(du)
+            sub_node.addRight(dv)
+            return sub_node
+
+        elif self.__operatorStr == "*":
+            sum_node = OperatorNode('+')
+            u = self._left
+            v = self._right 
+            du = u.differentiate()
+            dv = v.differentiate()
+
+            left_prod = OperatorNode("*")
+            right_prod = OperatorNode("*")
+            left_prod.addLeft(u)
+            left_prod.addRight(dv)
+            right_prod.addLeft(v)
+            right_prod.addRight(du)
+
+            sum_node.addLeft(left_prod)
+            sum_node.addRight(right_prod)
+            return sum_node
+
+        elif self.__operatorStr == "/":
+            div_node = OperatorNode('/')
+            u = self._left
+            v = self._right
+            du = u.differentiate()
+            dv = v.differentiate()
+
+            # Quotient Rule: (u/v)' = (v * du - u * dv) / v^2
+            numerator = OperatorNode('-')
+            left_prod = OperatorNode("*")
+            right_prod = OperatorNode("*")
+            left_prod.addLeft(v)
+            left_prod.addRight(du)
+            right_prod.addLeft(u)
+            right_prod.addRight(dv)
+            numerator.addLeft(left_prod)
+            numerator.addRight(right_prod)
+
+            denominator = OperatorNode("*")
+            v_squared = OperatorNode("*")
+            v_squared.addLeft(v)
+            v_squared.addRight(v)
+            denominator.addLeft(v_squared)
+
+            div_node.addLeft(numerator)
+            div_node.addRight(denominator)
+            return div_node
+
+        elif self.__operatorStr == "^":
+            prod_node = OperatorNode('*')
+            u = self._left
+            v = self._right
+            right_power = OperatorNode('^')
+            right_power_right_sub = OperatorNode('-')
+            right_power_right_sub.addLeft(v)
+            right_power_right_sub.addRight(NumberNode(1))
+            right_power.addLeft(u)
+            right_power.addRight(right_power_right_sub)
+            prod_node.addLeft(v)
+            prod_node.addRight(right_power)
+            return prod_node
+
+class BinaryTree:
+    def __init__(self, expression):
+        self.tokens = self.lexical_analysis(expression)
+        self.tree = self.build_tree()
+
+    def lexical_analysis(self, expression):
+
+        token_spec = [
+            ('NUMBER', r'\d+(\.\d+)?'),  # Match numbers
+            ('OPERATOR', r'[+\-*/^]'),  # Match arithmetic operators
+            ('PAREN', r'[()]'),  # Match parentheses
+            ('VARIABLE', r'[A-Za-z]'),  # Match variables
+            ('WHITESPACE', r'\s+')  # Match whitespace
+        ]
+
+        tokens = []
+        pos = 0
+        while pos < len(expression):
+            for pattern_name, pattern in token_spec:
+                match = re.match(pattern, expression[pos:])
+                if match:
+                    if pattern_name != 'WHITESPACE':
+                        tokens.append((pattern_name, match.group()))
+                    pos += len(match.group())
+                    break
+            else:
+                pos += 1
+        return tokens
+
+    def build_tree(self):
+        output_queue = []
+        operator_stack = []
+
+        for token in self.tokens:
+            if token[0] == 'NUMBER':
+                output_queue.append(NumberNode(int(token[1])))
+            elif token[0] == 'VARIABLE':
+                output_queue.append(VariableNode(token[1]))
+            elif token[0] == 'OPERATOR':
+                while (operator_stack and
+                       operator_stack[-1][0] != 'PAREN' and
+                       self.get_precedence(operator_stack[-1][1]) >= self.get_precedence(token[1])):
+                    self.process_operator(output_queue, operator_stack)
+                operator_stack.append((token[0], token[1]))
+            elif token[0] == 'PAREN':
+                if token[1] == '(':
+                    operator_stack.append(token)
+                else:
+                    while operator_stack and operator_stack[-1][0] != 'PAREN' and operator_stack[-1][1] != '(':
+                        self.process_operator(output_queue, operator_stack)
+                    if operator_stack and operator_stack[-1][0] == 'PAREN' and operator_stack[-1][1] == '(':
+                        operator_stack.pop()
+
+        while operator_stack:
+            if len(output_queue) < 2:
+                raise ValueError("Invalid expression")
+            self.process_operator(output_queue, operator_stack)
+
+        if len(output_queue) != 1:
+            raise ValueError("Invalid expression")
+
+        return output_queue[0]
+
+    def process_operator(self, output_queue, operator_stack):
+        operator = operator_stack.pop()
+        if len(output_queue) < 2:
+            raise ValueError("Invalid expression")
+        right = output_queue.pop()
+        left = output_queue.pop()
+
+        # Create the operator node and assign left and right children
+        operator_node = OperatorNode(operator[1])
+        operator_node.addLeft(left)
+        operator_node.addRight(right)
+
+        output_queue.append(operator_node)
+
+    def get_precedence(self, operator):
+        if operator in ['+', '-']:
+            return 1
+        elif operator in ['*', '/']:
+            return 2
+        elif operator in ['^']:
+            return 3
+        else:
+            return 0
+
+    def __str__(self):
+        return str(self.tree)
+
+def export(expression, var_value, var):
+    tree = BinaryTree(expression)
+    differentiated = tree.tree.differentiate().simplify()
+    if var_value:
+        differentiated = differentiated.evaluate(int(var_value))
+    return differentiated
