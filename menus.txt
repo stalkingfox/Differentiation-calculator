@@ -1,0 +1,10 @@
+Menu:
+1. Power Rule
+2. Product Rule
+3. Quotient Rule
+4. Chain Rule
+5. Sum Rule
+6. Example Problems
+7. Return to Main Menu
+
+Enter your choice:
