@@ -1,0 +1,55 @@
+Theory Lesson: Power Rule
+----------------------------
+The power rule is a fundamental rule in differentiation that allows us to differentiate functions of the form:
+f(x) = x^n
+where n is a constant.
+The derivative of f(x) is given by:
+f'(x) = nx^(n-1)
+This rule can be applied to more complex functions by applying the sum rule and the product rule.
+
+Theory Lesson: Product Rule
+----------------------------
+The product rule is a rule in differentiation that allows us to differentiate functions of the form:
+f(x) = u(x)v(x)
+where u(x) and v(x) are both functions of x.
+The derivative of f(x) is given by:
+f'(x) = u'(x)v(x) + u(x)v'(x)
+
+Theory Lesson: Quotient Rule
+----------------------------
+The quotient rule is a rule in differentiation that allows us to differentiate functions of the form:
+f(x) = u(x)/v(x)
+where u(x) and v(x) are both functions of x.
+The derivative of f(x) is given by:
+f'(x) = (u'(x)v(x) - u(x)v'(x)) / v(x)^2
+
+Theory Lesson: Chain Rule
+----------------------------
+The chain rule is a rule in differentiation that allows us to differentiate composite functions of the form:
+f(x) = g(h(x))
+where g(x) and h(x) are both functions of x.
+The derivative of f(x) is given by:
+f'(x) = g'(h(x)) \* h'(x)
+
+Theory Lesson: Sum Rule
+----------------------------
+The sum rule is a rule in differentiation that allows us to differentiate functions of the form:
+f(x) = u(x) + v(x)
+where u(x) and v(x) are both functions of x.
+The derivative of f(x) is given by:
+f'(x) = u'(x) + v'(x)
+
+Example Problems
+---------------
+Now it's your turn to try! Use the differentiation rules to differentiate the following functions:
+1. f(x) = x^3
+2. f(x) = 2x^2 + x^4
+3. f(x) = x^2 + 2x^3 - x^4
+4. f(x) = (x^2 + 1) / (x^2 - 1)
+
+Answers
+-------
+1. f'(x) = 3x^2
+2. f'(x) = 4x + 4x^3
+3. f'(x) = 2x + 6x^2 - 4x^3
+4. f'(x) = (-2x^3 + 2x) / (x^2 - 1)^2
