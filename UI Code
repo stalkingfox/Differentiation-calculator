@@ -1,0 +1,157 @@
+import differentiation
+
+def main_menu():
+    print("Differentiation Calculator")
+    print("----------------------------")
+    print("1. Regular Differentiation")
+    print("2. Learning Differentiation")
+    print("3. Exit")
+    print("----------------------------")
+    while True:
+        choice = input("Choose a mode (1,2,3).\n=")
+        if choice == '1':
+            regular_mode()
+            break
+        elif choice == '2':
+            learning_mode()
+            break
+        elif choice == '3':
+            exit()
+        else:
+            print("Invalid input. Please enter 1, 2 or 3.")
+
+def regular_mode():
+    print("Regular Differentiation")
+    print("------------")
+    print("1. Differentiate with variable")
+    print("2. evaluate differential at given x value")
+    print("3. return to main menu")
+    print("----------------------------")
+    while True:
+        choice = input("Choose a mode (1,2,3).\n=")
+        if choice == '1':
+            get_derivative(None)
+            break
+        elif choice == '2':
+            val = get_evaluation()
+            get_derivative(val)
+        elif choice == '3':
+            main_menu()
+
+    input("Press enter to continue...")
+    main_menu()
+
+def learning_mode():
+    print("Learning Differentiation")
+    print("------------")
+    print("Welcome to the differentiation theory lesson!")
+
+
+
+
+    while True:
+
+        with open("menus.txt", "r") as file:
+            lines = file.readlines()
+        for line in lines[0:10]:
+            print(line[:-1])
+        choice = input()
+        file.close()
+
+        with open("learningmode.txt", "r") as file:
+            lines = file.readlines()
+
+        if choice == "1":
+            # Print the Power Rule section from the file
+            for line in lines[0:8]:
+                print(line[:-1])
+
+
+        elif choice == "2":
+            # Print the Product Rule section from the file
+            for line in lines[9:16]:
+                print(line[:-1])
+
+        elif choice == "3":
+            # Print the Quotient Rule section from the file
+            for line in lines[17:24]:
+                print(line[:-1])
+
+        elif choice == "4":
+            # Print the Chain Rule section from the file
+            for line in lines[25:32]:
+                print(line[:-1])
+
+        elif choice == "5":
+            # Print the Sum Rule section from the file
+            for line in lines[33:40]:
+                print(line[:-1])
+
+        elif choice == "6":
+            # Print the Example Problems section from the file
+            for line in lines[41:48]:
+                print(line[:-1])
+            input("Press enter to see the answers...")
+            for line in lines[49:55]:
+                print(line[:-1])
+
+        elif choice == "7":
+            main_menu()
+
+        else:
+            print("Invalid choice. Please try again.")
+        input("Press enter to continue...")
+        file.close()
+
+def get_derivative(val):
+    while True:
+        expression = input("Input your expression:\n=")
+        while True:
+            confirm = input(f"Is '{expression}' your expression? (y/n):\n=")
+            if confirm.lower() == 'y':
+                break
+            elif confirm.lower() == 'n':
+                print("Please try again.")
+                expression = input("Input your expression:\n=")
+            else:
+                print("Invalid input. Please enter 'y' or 'n'.")
+
+        while True:
+            var = input("With respect to?\n=")
+            while True:
+                confirm = input(f"With respect to '{var}'? (y/n):\n=")
+                if confirm.lower() == 'y':
+                    break
+                elif confirm.lower() == 'n':
+                    print("Please try again.")
+                    var = input("With respect to?\n=")
+                else:
+                    print("Invalid input. Please enter 'y' or 'n'.")
+            if confirm.lower() == 'n':
+                continue
+            break
+        print("------------")
+        derivative = differentiation.export(expression, val, var)
+        print("Derivative of expression with respect to", var, "hence d/d" + var + ":")
+        if val:
+            print("At variable value of",val,":")
+        print(derivative)
+        print("------------")
+        break
+
+def get_evaluation():
+
+    var_value = input("input your value for x:\n=")
+    while True:
+        confirm = input(f"Is '{var_value}' your value for x? (y/n):\n=")
+        if confirm.lower() == 'y':
+            break
+        elif confirm.lower() == 'n':
+            print("Please try again.")
+            var_value = input("input your value for x:\n=")
+        else:
+            print("Invalid input. Please enter 'y' or 'n'.")
+    return var_value
+
+if __name__ == "__main__":
+    main_menu()
