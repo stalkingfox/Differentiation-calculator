@@ -1,0 +1,229 @@
+import re
+from sympy import symbols, sympify, simplify
+
+
+abc = symbols('a b c d e f g h i j k l m n o p q r s t u v w x y z')
+ABC = symbols('A B C D E F G H I J K L M N O P Q R S T U V W X Y Z')
+
+def setup(expression):
+   expression = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', expression)  # Insert '*' between a digit and a variable
+   expression = re.sub(r'\)([a-zA-Z])', r')*\1', expression)  # Insert '*' between a ')' and a variable
+   expression = re.sub(r'\(([a-zA-Z])', r'(\1*', expression)  # Insert '*' between a '(' and a variable
+   expression = re.sub(r'(\d)\(', r'\1*(', expression)  # Insert '*' between a digit and a '('
+   expression = re.sub(r'\)(\d)', r')*\1', expression)  # Insert '*' between a ')' and a digit
+   expression = re.sub(r'\)\(', r')*(', expression)  # Insert '*' between a ')' and a '('
+   expression = re.sub(r'([a-zA-Z])\*', r'\1', expression)  # Remove '*' after a variable
+   return expression
+
+def simplify_expression(expression):
+   try:
+       expression = expression.replace('^', '**')
+       expression = setup(expression)
+       expression = simplify(expression)
+       simplified_expression = str(expression)
+       simplified_expression = simplified_expression.replace('**', '^')
+       return simplified_expression
+   except:
+       return expression
+
+
+
+def lexical_analysis(expression):
+
+
+   token_spec = [
+       ('NUMBER', r'\d+(\.\d+)?'),  # Match numbers
+       ('OPERATOR', r'[+\-*/^]'),    # Match arithmetic operators
+       ('PAREN', r'[()]'),          # Match parentheses
+       ('VARIABLE', r'[A-Za-z]'),   # Match variables
+       ('WHITESPACE', r'\s+')       # Match whitespace
+   ]
+
+   tokens = []
+   pos = 0
+   while pos < len(expression):
+       for pattern_name, pattern in token_spec:
+           match = re.match(pattern, expression[pos:])
+           if match:
+               if pattern_name != 'WHITESPACE':
+                   tokens.append((pattern_name, match.group()))
+               pos += len(match.group())
+               break
+       else:
+           pos += 1
+   return tokens
+
+class Node:
+   def __init__(self, value, left=None, right=None):
+       self.value = value
+       self.left = left
+       self.right = right
+
+class BinaryTree:
+   def __init__(self, tokens):
+       self.tokens = tokens
+       self.tree = self.build_tree()
+
+
+   def build_tree(self):
+       output_queue = []
+       operator_stack = []
+
+       for token in self.tokens:
+           if token[0] == 'NUMBER' or token[0] == 'VARIABLE':
+               output_queue.append(Node(token[1]))
+
+elif token[0] == 'OPERATOR':
+               while (operator_stack and
+                      operator_stack[-1][0] != 'PAREN' and
+                      self.get_precedence(operator_stack[-1][1]) >= self.get_precedence(token[1])):
+                   self.process_operator(output_queue, operator_stack)
+               operator_stack.append((token[0], token[1]))
+           elif token[0] == 'PAREN':
+               if token[1] == '(':
+                   operator_stack.append(token)
+               else:
+                   while operator_stack and operator_stack[-1][0] != 'PAREN' and operator_stack[-1][1] != '(':
+                       self.process_operator(output_queue, operator_stack)
+                   if operator_stack and operator_stack[-1][0] == 'PAREN' and operator_stack[-1][1] == '(':
+                       operator_stack.pop()
+
+       while operator_stack:
+           if len(output_queue) < 2:
+               raise ValueError("Invalid expression")
+           self.process_operator(output_queue, operator_stack)
+
+       if len(output_queue) != 1:
+           raise ValueError("Invalid expression")
+
+       return output_queue[0]
+
+   def process_operator(self, output_queue, operator_stack):
+       operator = operator_stack.pop()
+       if len(output_queue) < 2:
+           raise ValueError("Invalid expression")
+       right = output_queue.pop()
+       left = output_queue.pop()
+       output_queue.append(Node(operator[1], left, right))
+
+
+   def get_precedence(self, operator):
+       if operator in ['+', '-']:
+           return 1
+       elif operator in ['*', '/']:
+           return 2
+       elif operator in ['^']:
+           return 3
+       else:
+           return 0
+
+   def differentiate(self, node, var):
+       if node is None:
+           return None
+
+       if node.value == var:
+           return Node(1)
+       elif node.value in ['+', '-']:
+           left_diff = self.differentiate(node.left, var)
+           right_diff = self.differentiate(node.right, var)
+           if left_diff is not None and right_diff is not None:
+               return Node(node.value, left_diff, right_diff)
+           elif left_diff is not None:
+               return left_diff
+           elif right_diff is not None:
+               return right_diff
+           else:
+               return Node(0)
+       elif node.value == '*':
+           left_diff = self.differentiate(node.left, var)
+           right_diff = self.differentiate(node.right, var)
+           if left_diff is not None and right_diff is not None:
+               return Node('+', Node('*', left_diff, node.right), Node('*', node.left, right_diff))
+           elif left_diff is not None:
+               return Node('*', left_diff, node.right)
+           elif right_diff is not None:
+               return Node('*', node.left, right_diff)
+           else:
+               return Node(0)
+       elif node.value == '^':
+           if node.left.value == var and node.right.value == var:
+               return Node('*', Node('^', node.left, node.right), Node('+', Node('natural_log(x)'), Node(1)))
+           elif isinstance(node.left.value, str) and node.left.value.isalpha() and len(node.left.value) == 1:
+               if isinstance(node.right.value, int) or isinstance(node.right.value, float):
+                   multiplication = node.right.value
+                   return Node('*', Node(multiplication), Node('^', node.left, Node(multiplication - 1)))
+               else:
+                   return Node('*', node.right, Node('^', node.left, Node('-', node.right, Node(1))))
+           else:
+               left_diff = self.differentiate(node.left, var)
+               right_diff = self.differentiate(node.right, var)
+               if left_diff is not None and right_diff is not None:
+                   return Node('*', Node('^', node.left, node.right),
+                               Node('+', Node('*', right_diff, Node('log', node.left)),
+                                    Node('*', node.right, Node('/', left_diff, node.left))))
+               elif left_diff is not None:
+                   return Node('*', Node('^', node.left, node.right),
+                               Node('*', node.right, Node('/', left_diff, node.left)))
+               elif right_diff is not None:
+                   return Node('*', Node('^', node.left, node.right),
+                               Node('*', right_diff, Node('log', node.left)))
+               else:
+                   return Node(0)
+       elif node.value == '/':
+           numerator = node.left
+           denominator = node.right
+           numerator_diff = self.differentiate(numerator, var)
+           denominator_diff = self.differentiate(denominator, var)
+
+           if numerator_diff is not None and denominator_diff is not None:
+               numerator_term = Node('*', numerator_diff, denominator)
+               denominator_term = Node('*', numerator, denominator_diff)
+               quotient_rule = Node('-', numerator_term, denominator_term)
+               return Node('/', quotient_rule, Node('^', denominator, Node(2)))
+           elif numerator_diff is not None:
+               return Node('/', Node('*', numerator_diff, denominator), Node('^', denominator, Node(2)))
+           elif denominator_diff is not None:
+               return Node('/', Node('*', Node(-1), Node('*', numerator, denominator_diff)),
+                           Node('^', denominator, Node(2)))
+           else:
+               return Node(0)
+       else:
+           pass
+
+   def print_tree(self, node, level=0):
+       if node is not None:
+           self.print_tree(node.right, level + 1)
+           print(' ' * 4 * level + '->', node.value)
+           self.print_tree(node.left, level + 1)
+
+   def infix_notation(self, node):
+       if node is None:
+           return ''
+       elif node.value == '+':
+           return '(' + self.infix_notation(node.left) + ' + ' + self.infix_notation(node.right) + ')'
+       elif node.value == '-':
+           return '(' + self.infix_notation(node.left) + ' - ' + self.infix_notation(node.right) + ')'
+       elif node.value == '*':
+           return '(' + self.infix_notation(node.left) + ' * ' + self.infix_notation(node.right) + ')'
+       elif node.value == '/':
+           return '(' + self.infix_notation(node.left) + ' / ' + self.infix_notation(node.right) + ')'
+       elif node.value == '^':
+           return '(' + self.infix_notation(node.left) + ' ^ ' + self.infix_notation(node.right) + ')'
+       else:
+           return str(node.value)
+
+
+def execute(expression, var):
+   try:
+       expression = setup(expression)
+       tokens = lexical_analysis(expression)
+       #tree = BinaryTree(tokens)
+       #derivative_tree = tree.differentiate(tree.tree, var)
+       print("Derivative Tree:")
+       tree.print_tree(derivative_tree)
+       derivative = tree.infix_notation(derivative_tree)
+       simplified_derivative = simplify_expression(derivative)
+       return simplified_derivative
+   except ValueError as error:
+       print("Error:", error)
+
