@@ -26,6 +26,7 @@ class Node:
 
 class VariableNode(Node):
     def __init__(self, value):
+        super().__init__()
         self._value = value
 
     def differentiate(self):
@@ -43,6 +44,7 @@ class VariableNode(Node):
 
 class NumberNode(Node):
     def __init__(self, value):
+        super().__init__()
         self.__value = value
 
     def get_value(self):
@@ -64,6 +66,7 @@ class NumberNode(Node):
 
 class OperatorNode(Node):
     def __init__(self, operatorStr):
+        super().__init__()
         self.__operatorStr = operatorStr
 
     def __str__(self):
@@ -154,10 +157,13 @@ class OperatorNode(Node):
             elif isinstance(simplified_left, NumberNode) and isinstance(simplified_right, NumberNode):
                 return NumberNode(simplified_left.get_value() ** simplified_right.get_value())
 
+
         # If no simplification rule applied, return the simplified operator with its children
         simplified_node = OperatorNode(self.__operatorStr)
         simplified_node.addLeft(simplified_left)
         simplified_node.addRight(simplified_right)
+
+
 
         return simplified_node
 
@@ -189,7 +195,7 @@ class OperatorNode(Node):
         elif self.__operatorStr == "*":
             sum_node = OperatorNode('+')
             u = self._left
-            v = self._right 
+            v = self._right
             du = u.differentiate()
             dv = v.differentiate()
 
@@ -223,19 +229,19 @@ class OperatorNode(Node):
             numerator.addRight(right_prod)
 
             denominator = OperatorNode("*")
-            v_squared = OperatorNode("*")
-            v_squared.addLeft(v)
-            v_squared.addRight(v)
-            denominator.addLeft(v_squared)
+            denominator.addLeft(v)
+            denominator.addRight(v)
 
             div_node.addLeft(numerator)
             div_node.addRight(denominator)
             return div_node
 
         elif self.__operatorStr == "^":
+            combine_node = OperatorNode('*')
             prod_node = OperatorNode('*')
             u = self._left
             v = self._right
+            du = u.differentiate()
             right_power = OperatorNode('^')
             right_power_right_sub = OperatorNode('-')
             right_power_right_sub.addLeft(v)
@@ -244,11 +250,14 @@ class OperatorNode(Node):
             right_power.addRight(right_power_right_sub)
             prod_node.addLeft(v)
             prod_node.addRight(right_power)
-            return prod_node
+            combine_node.addLeft(prod_node)
+            combine_node.addRight(du)
+            return combine_node
 
 class BinaryTree:
     def __init__(self, expression):
         self.tokens = self.lexical_analysis(expression)
+        self.tokens = self.add_multiplication(self.tokens)
         self.tree = self.build_tree()
 
     def lexical_analysis(self, expression):
@@ -256,7 +265,8 @@ class BinaryTree:
         token_spec = [
             ('NUMBER', r'\d+(\.\d+)?'),  # Match numbers
             ('OPERATOR', r'[+\-*/^]'),  # Match arithmetic operators
-            ('PAREN', r'[()]'),  # Match parentheses
+            ('PAREN_OPEN', r'\('),  # Match opening parenthesis
+            ('PAREN_CLOSE', r'\)'),  # Match closing parenthesis
             ('VARIABLE', r'[A-Za-z]'),  # Match variables
             ('WHITESPACE', r'\s+')  # Match whitespace
         ]
@@ -275,6 +285,55 @@ class BinaryTree:
                 pos += 1
         return tokens
 
+    def add_multiplication(self, tokens):
+        new_tokens = []
+        case = False
+
+        for i in range(len(tokens) - 1):
+            current_token = tokens[i]
+            next_token = tokens[i + 1]
+
+
+            if case == False:
+                new_tokens.append(current_token)
+            case = False
+
+            # Check if we need to insert multiplication
+            if (current_token[0] in ['NUMBER', 'VARIABLE'] and
+                    next_token[0] in ['NUMBER', 'VARIABLE']):
+
+                # Check if both elements are already wrapped in parentheses
+                if not (self.is_wrapped_in_parentheses(i, tokens)):
+                    new_tokens.insert(-1, ('PAREN_OPEN', '('))  # Add (
+                    new_tokens.append(('OPERATOR', '*'))  # Add *
+                    new_tokens.append(next_token)  # Add next token
+                    new_tokens.append(('PAREN_CLOSE', ')'))  # Add )
+                    i += 1  # Skip next token (already added)
+                    case = True
+                else:
+                    new_tokens.append(('OPERATOR', '*'))  # Just insert *
+
+            elif (current_token[0] in ['NUMBER', 'VARIABLE'] and
+                    next_token[0] in ['PAREN_OPEN']):
+                new_tokens.append(('OPERATOR', '*'))  # Add *
+
+            elif (current_token[0] in ['PAREN_CLOSE'] and
+                    next_token[0] in ['VARIABLE', 'NUMBER', 'PAREN_OPEN']):
+                new_tokens.append(('OPERATOR', '*'))  # Add *
+
+        if case == False:
+            # Add the last token
+            new_tokens.append(tokens[-1])
+
+        return new_tokens
+
+    def is_wrapped_in_parentheses(self, index, tokens):
+        """ Check if the token at `index` is already inside parentheses. """
+        if index > 0 and tokens[index - 1][0] == 'PAREN_OPEN':
+            if index + 1 < len(tokens) and tokens[index + 1][0] == 'PAREN_CLOSE':
+                return True  # Already inside ( )
+        return False
+
     def build_tree(self):
         output_queue = []
         operator_stack = []
@@ -286,28 +345,34 @@ class BinaryTree:
                 output_queue.append(VariableNode(token[1]))
             elif token[0] == 'OPERATOR':
                 while (operator_stack and
-                       operator_stack[-1][0] != 'PAREN' and
-                       self.get_precedence(operator_stack[-1][1]) >= self.get_precedence(token[1])):
+                       operator_stack[-1][0] != 'PAREN_OPEN' and
+                       (self.get_precedence(operator_stack[-1][1]) > self.get_precedence(token[1]) or
+                        (self.get_precedence(operator_stack[-1][1]) == self.get_precedence(
+                            token[1]) and self.is_left_associative(token[1])))):
                     self.process_operator(output_queue, operator_stack)
                 operator_stack.append((token[0], token[1]))
-            elif token[0] == 'PAREN':
-                if token[1] == '(':
-                    operator_stack.append(token)
-                else:
-                    while operator_stack and operator_stack[-1][0] != 'PAREN' and operator_stack[-1][1] != '(':
-                        self.process_operator(output_queue, operator_stack)
-                    if operator_stack and operator_stack[-1][0] == 'PAREN' and operator_stack[-1][1] == '(':
-                        operator_stack.pop()
+            elif token[0] == 'PAREN_OPEN':
+                operator_stack.append(token)
+            elif token[0] == 'PAREN_CLOSE':
+                while operator_stack and operator_stack[-1][0] != 'PAREN_OPEN':
+                    self.process_operator(output_queue, operator_stack)
+                if not operator_stack:
+                    raise ValueError("Mismatched parentheses")
+                operator_stack.pop()  # Remove the '('
 
         while operator_stack:
-            if len(output_queue) < 2:
-                raise ValueError("Invalid expression")
+            if operator_stack[-1][0] in ('PAREN_OPEN', 'PAREN_CLOSE'):
+                raise ValueError("Mismatched parentheses")
             self.process_operator(output_queue, operator_stack)
 
         if len(output_queue) != 1:
             raise ValueError("Invalid expression")
 
         return output_queue[0]
+
+    # New helper function to determine associativity
+    def is_left_associative(self, operator):
+        return operator in ['+', '-', '*', '/']  # Left-associative operators
 
     def process_operator(self, output_queue, operator_stack):
         operator = operator_stack.pop()
